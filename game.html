@@ -1,0 +1,3156 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limit Breaker: Improper Integrals</title>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      background: radial-gradient(ellipse at center, #0a0e27 0%, #020208 100%);
+      color: #fff;
+      overflow: hidden;
+      height: 100%;
+      position: relative;
+    }
+
+    html {
+      height: 100%;
+    }
+
+    /* Starfield Background */
+    .starfield {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle 3s infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    /* Main Container */
+    .game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* HUD Header */
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px 30px;
+      background: linear-gradient(180deg, rgba(10, 14, 39, 0.9) 0%, rgba(10, 14, 39, 0.3) 100%);
+      border-bottom: 2px solid #00d4ff;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+      z-index: 100;
+    }
+
+    .hud-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hud-label {
+      font-size: 12px;
+      color: #00d4ff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .hud-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 10px #00d4ff;
+    }
+
+    .galaxy-map-btn {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(184, 0, 255, 0.3) 100%);
+      border: 2px solid #00d4ff;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .galaxy-map-btn:hover {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.6) 0%, rgba(184, 0, 255, 0.6) 100%);
+      box-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .progress-bar-container {
+      width: 300px;
+      height: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid #00d4ff;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff 0%, #b800ff 100%);
+      transition: width 0.5s ease;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+    }
+
+    /* Space Scene */
+    .space-scene {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1000px;
+    }
+
+    /* Solar System Selection Screen */
+    .solar-system-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, #0a0e27 0%, #020208 100%);
+      display: none;
+      z-index: 300;
+      animation: fadeIn 0.5s ease;
+      overflow-y: auto;
+      padding: 40px 0;
+    }
+
+    .solar-system-screen.active {
+      display: block;
+    }
+
+    .galaxy-header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 20px;
+    }
+
+    .galaxy-title {
+      font-size: 48px;
+      color: #00d4ff;
+      text-shadow: 0 0 30px #00d4ff, 0 0 60px #b800ff;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    .total-score-display {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(184, 0, 255, 0.2) 100%);
+      border: 3px solid #00d4ff;
+      border-radius: 15px;
+      padding: 20px 40px;
+      display: inline-block;
+      margin: 10px 0;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+    }
+
+    .total-score-label {
+      font-size: 16px;
+      color: #00d4ff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 5px;
+    }
+
+    .total-score-value {
+      font-size: 36px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 15px #00d4ff;
+    }
+
+    /* Congratulations Modal */
+    .congratulations-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .congratulations-modal.active {
+      display: flex;
+    }
+
+    .congratulations-content {
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.95) 0%, rgba(20, 10, 40, 0.95) 100%);
+      border: 4px solid #00ff64;
+      border-radius: 25px;
+      padding: 50px;
+      max-width: 900px;
+      width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 0 80px rgba(0, 255, 100, 0.8), inset 0 0 40px rgba(0, 255, 100, 0.1);
+      text-align: center;
+      animation: celebrationPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes celebrationPulse {
+      0%, 100% { 
+        box-shadow: 0 0 80px rgba(0, 255, 100, 0.8), inset 0 0 40px rgba(0, 255, 100, 0.1);
+        transform: scale(1);
+      }
+      50% { 
+        box-shadow: 0 0 120px rgba(0, 255, 100, 1), inset 0 0 60px rgba(0, 255, 100, 0.2);
+        transform: scale(1.02);
+      }
+    }
+
+    .congratulations-title {
+      font-size: 64px;
+      color: #00ff64;
+      text-shadow: 0 0 40px #00ff64, 0 0 80px #00d4ff;
+      margin-bottom: 30px;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      animation: titleGlow 1.5s ease-in-out infinite;
+    }
+
+    @keyframes titleGlow {
+      0%, 100% { 
+        text-shadow: 0 0 40px #00ff64, 0 0 80px #00d4ff;
+      }
+      50% { 
+        text-shadow: 0 0 60px #00ff64, 0 0 120px #00d4ff, 0 0 160px #b800ff;
+      }
+    }
+
+    .congratulations-message {
+      font-size: 24px;
+      color: #fff;
+      line-height: 1.6;
+      margin: 30px 0;
+    }
+
+    .final-achievement {
+      background: rgba(0, 255, 100, 0.1);
+      border: 3px solid #00ff64;
+      border-radius: 20px;
+      padding: 30px;
+      margin: 30px 0;
+      font-size: 20px;
+      color: #00ff64;
+    }
+
+    .celebration-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin: 40px 0;
+    }
+
+    .celebration-stat {
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid #00d4ff;
+      border-radius: 15px;
+      padding: 20px;
+    }
+
+    .celebration-stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #00ff64;
+      text-shadow: 0 0 15px #00ff64;
+    }
+
+    .celebration-stat-label {
+      font-size: 14px;
+      color: #00d4ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .continue-exploring-btn {
+      padding: 25px 70px;
+      font-size: 28px;
+      background: linear-gradient(135deg, #00ff64 0%, #00d4ff 100%);
+      border: none;
+      border-radius: 20px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      box-shadow: 0 0 40px rgba(0, 255, 100, 0.6);
+      margin-top: 40px;
+    }
+
+    .continue-exploring-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 80px rgba(0, 255, 100, 1);
+      background: linear-gradient(135deg, #00ff64 0%, #b800ff 100%);
+    }
+
+    .solar-systems-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      max-width: 1200px;
+      width: 90%;
+      padding: 40px 20px;
+      margin: 0 auto;
+      min-height: calc(100% - 80px);
+    }
+
+    .solar-system-card {
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.95) 0%, rgba(20, 10, 40, 0.95) 100%);
+      border: 3px solid #00d4ff;
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+    }
+
+    .solar-system-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 50px rgba(0, 212, 255, 0.6);
+      border-color: #b800ff;
+    }
+
+    .solar-system-card.completed {
+      border-color: #00ff64;
+      background: linear-gradient(135deg, rgba(0, 255, 100, 0.2) 0%, rgba(0, 200, 80, 0.2) 100%);
+    }
+
+    .solar-system-card.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+      border-color: #666;
+    }
+
+    .solar-system-card.locked:hover {
+      transform: none;
+      box-shadow: 0 0 30px rgba(102, 102, 102, 0.3);
+    }
+
+    .solar-system-name {
+      font-size: 28px;
+      color: #00d4ff;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 15px #00d4ff;
+    }
+
+    .solar-system-description {
+      font-size: 16px;
+      color: #fff;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .solar-system-progress {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .planet-status {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #666;
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .planet-status.saved {
+      background: #00ff64;
+      border-color: #00ff64;
+      box-shadow: 0 0 10px #00ff64;
+    }
+
+    .planet-status.partial {
+      background: #ffa500;
+      border-color: #ffa500;
+      box-shadow: 0 0 10px #ffa500;
+    }
+
+    .planet-status.destroyed {
+      background: #ff0064;
+      border-color: #ff0064;
+      box-shadow: 0 0 10px #ff0064;
+    }
+
+    .solar-system-difficulty {
+      font-size: 14px;
+      color: #b800ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .system-stats {
+      display: flex;
+      justify-content: space-between;
+      margin: 15px 0;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      border: 1px solid #00d4ff;
+    }
+
+    .system-stat {
+      text-align: center;
+      flex: 1;
+    }
+
+    .system-stat-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #00d4ff;
+      text-shadow: 0 0 10px #00d4ff;
+    }
+
+    .system-stat-label {
+      font-size: 12px;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 5px;
+    }
+
+    /* Mission Summary Screen */
+    .summary-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, #0a0e27 0%, #020208 100%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 400;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .summary-screen.active {
+      display: flex;
+    }
+
+    .summary-content {
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.95) 0%, rgba(20, 10, 40, 0.95) 100%);
+      border: 3px solid #00d4ff;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 0 50px rgba(0, 212, 255, 0.5);
+      text-align: center;
+    }
+
+    .summary-title {
+      font-size: 48px;
+      color: #00d4ff;
+      text-shadow: 0 0 30px #00d4ff;
+      margin-bottom: 30px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+
+    .stat-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid #00d4ff;
+      border-radius: 15px;
+      padding: 20px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .stat-label {
+      font-size: 16px;
+      color: #00d4ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-card.saved .stat-value {
+      color: #00ff64;
+    }
+
+    .stat-card.partial .stat-value {
+      color: #ffa500;
+    }
+
+    .stat-card.destroyed .stat-value {
+      color: #ff0064;
+    }
+
+    .stat-card.time .stat-value {
+      color: #b800ff;
+    }
+
+    .stat-card.score .stat-value {
+      color: #00d4ff;
+    }
+
+    .summary-message {
+      font-size: 24px;
+      color: #fff;
+      margin: 30px 0;
+      line-height: 1.6;
+    }
+
+    .restart-btn {
+      padding: 20px 60px;
+      font-size: 24px;
+      background: linear-gradient(135deg, #00d4ff 0%, #b800ff 100%);
+      border: none;
+      border-radius: 15px;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+      margin-top: 30px;
+    }
+
+    .restart-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 50px rgba(0, 212, 255, 0.8);
+    }
+
+    /* Planets */
+    .planet-container {
+      position: absolute;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+      animation: float 6s ease-in-out infinite;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .planet-container:hover {
+      transform: scale(1.1);
+    }
+
+    .planet-container.type1 {
+      top: 15%;
+      left: 15%;
+      animation-delay: 0s;
+    }
+
+    .planet-container.type2 {
+      top: 45%;
+      right: 20%;
+      animation-delay: 1s;
+    }
+
+    .planet-container.type3 {
+      bottom: 10%;
+      left: 25%;
+      animation-delay: 2s;
+    }
+
+    .planet-label {
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 0 0 15px rgba(0, 212, 255, 0.8), 0 0 30px rgba(0, 212, 255, 0.5);
+      margin-bottom: 10px;
+      text-align: center;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: labelGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes labelGlow {
+      0%, 100% { 
+        text-shadow: 0 0 15px rgba(0, 212, 255, 0.8), 0 0 30px rgba(0, 212, 255, 0.5);
+      }
+      50% { 
+        text-shadow: 0 0 20px rgba(0, 212, 255, 1), 0 0 40px rgba(0, 212, 255, 0.8);
+      }
+    }
+
+    .planet {
+      border-radius: 50%;
+      position: relative;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      overflow: hidden;
+    }
+
+    .planet.type1 {
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle at 30% 30%, #00d4ff, #0066ff, #003366);
+      box-shadow: 0 0 30px #00d4ff, inset 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .planet.type2 {
+      width: 140px;
+      height: 140px;
+      background: radial-gradient(circle at 30% 30%, #b800ff, #6600cc, #330066);
+      box-shadow: 0 0 30px #b800ff, inset 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .planet.type3 {
+      width: 130px;
+      height: 130px;
+      background: radial-gradient(circle at 30% 30%, #ff00ff, #cc0099, #660033);
+      box-shadow: 0 0 30px #ff00ff, inset 0 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Planet Surface Details */
+    .planet::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 50%;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.3) 0%, transparent 30%),
+        radial-gradient(circle at 70% 60%, rgba(0, 0, 0, 0.2) 0%, transparent 25%),
+        radial-gradient(circle at 40% 80%, rgba(0, 0, 0, 0.15) 0%, transparent 20%),
+        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 15%);
+      pointer-events: none;
+    }
+
+    .planet-container:hover .planet {
+      box-shadow: 0 0 50px currentColor, inset 0 0 30px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Black Hole Effects */
+    .planet::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 40px;
+      height: 40px;
+      background: radial-gradient(circle, #000000 0%, #1a1a1a 30%, transparent 70%);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: blackHolePulse 2s ease-in-out infinite;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+
+    @keyframes blackHolePulse {
+      0%, 100% { 
+        transform: translate(-50%, -50%) scale(1);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.1);
+      }
+      50% { 
+        transform: translate(-50%, -50%) scale(1.2);
+        box-shadow: 0 0 30px rgba(0, 0, 0, 1), inset 0 0 30px rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    .planet.destroyed {
+      animation: planetDestruction 2s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes planetDestruction {
+      0% { 
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% { 
+        transform: scale(1.5);
+        opacity: 0.5;
+        box-shadow: 0 0 100px #ff0000;
+      }
+      100% { 
+        transform: scale(0);
+        opacity: 0;
+      }
+    }
+
+    .planet.saved::before {
+      animation: blackHoleStabilize 1s ease-out forwards;
+    }
+
+    @keyframes blackHoleStabilize {
+      0% { 
+        background: radial-gradient(circle, #000000 0%, #1a1a1a 30%, transparent 70%);
+      }
+      100% { 
+        background: radial-gradient(circle, #00ff64 0%, #00d4ff 30%, transparent 70%);
+        box-shadow: 0 0 30px rgba(0, 255, 100, 0.8);
+      }
+    }
+
+    .planet.partial-save {
+      position: relative;
+      overflow: visible;
+    }
+
+    .planet.partial-save::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(45deg, 
+        transparent 0%, 
+        transparent 45%, 
+        #ff4444 45%, 
+        #ff6666 50%, 
+        #ff4444 55%, 
+        transparent 55%, 
+        transparent 100%
+      );
+      border-radius: 0 50% 50% 0;
+      z-index: 10;
+      animation: partialDestruction 2s ease-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes partialDestruction {
+      0% { 
+        transform: translateX(0);
+        opacity: 0;
+      }
+      50% { 
+        transform: translateX(10px);
+        opacity: 1;
+        box-shadow: 0 0 20px #ff4444;
+      }
+      100% { 
+        transform: translateX(5px);
+        opacity: 0.8;
+        box-shadow: 0 0 15px #ff4444;
+      }
+    }
+
+    .planet.partial-save {
+      animation: partialShake 0.5s ease-in-out 3;
+    }
+
+    @keyframes partialShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-2px); }
+      75% { transform: translateX(2px); }
+    }
+
+    /* Half-destroyed planet effect */
+    .planet.partial-save::before {
+      animation: blackHolePartialStabilize 1s ease-out forwards;
+    }
+
+    @keyframes blackHolePartialStabilize {
+      0% { 
+        background: radial-gradient(circle, #000000 0%, #1a1a1a 30%, transparent 70%);
+      }
+      100% { 
+        background: radial-gradient(circle, #ffa500 0%, #ff6400 30%, transparent 70%);
+        box-shadow: 0 0 30px rgba(255, 165, 0, 0.8);
+      }
+    }
+
+    /* Create torn/ripped edge effect */
+    .planet.partial-save {
+      clip-path: polygon(0% 0%, 50% 0%, 45% 10%, 55% 20%, 48% 30%, 52% 40%, 47% 50%, 53% 60%, 49% 70%, 51% 80%, 48% 90%, 50% 100%, 0% 100%);
+      position: relative;
+    }
+
+    /* Add debris particles */
+    .planet.partial-save {
+      position: relative;
+    }
+
+    .planet.partial-save::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 20%, rgba(255, 68, 68, 0.8) 2px, transparent 3px),
+        radial-gradient(circle at 60% 40%, rgba(255, 100, 100, 0.6) 1px, transparent 2px),
+        radial-gradient(circle at 30% 70%, rgba(255, 68, 68, 0.7) 1.5px, transparent 2.5px),
+        radial-gradient(circle at 80% 60%, rgba(255, 100, 100, 0.5) 1px, transparent 2px),
+        radial-gradient(circle at 40% 90%, rgba(255, 68, 68, 0.6) 1px, transparent 2px);
+      animation: debrisFloat 3s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    @keyframes debrisFloat {
+      0%, 100% { 
+        transform: translateX(0) translateY(0);
+        opacity: 0.8;
+      }
+      50% { 
+        transform: translateX(10px) translateY(-5px);
+        opacity: 1;
+      }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+
+    /* Spaceship */
+    .spaceship {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 1s ease;
+      z-index: 50;
+      filter: drop-shadow(0 0 20px #00d4ff);
+    }
+
+    .spaceship svg {
+      width: 100%;
+      height: 100%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Challenge Modal */
+    .challenge-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .challenge-modal.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .challenge-content {
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.95) 0%, rgba(20, 10, 40, 0.95) 100%);
+      border: 3px solid #00d4ff;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 700px;
+      width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 0 50px rgba(0, 212, 255, 0.5), inset 0 0 30px rgba(0, 212, 255, 0.1);
+      animation: slideIn 0.5s ease;
+    }
+
+    @keyframes slideIn {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .challenge-title {
+      font-size: 32px;
+      text-align: center;
+      margin-bottom: 30px;
+      color: #00d4ff;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      text-shadow: 0 0 20px #00d4ff;
+    }
+
+    .integral-display {
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid #b800ff;
+      border-radius: 15px;
+      padding: 30px;
+      margin: 30px 0;
+      text-align: center;
+      font-size: 36px;
+      color: #fff;
+      box-shadow: 0 0 30px rgba(184, 0, 255, 0.3);
+    }
+
+    .integral-symbol {
+      display: inline-block;
+      font-size: 48px;
+      color: #00d4ff;
+      text-shadow: 0 0 15px #00d4ff;
+      margin: 0 10px;
+    }
+
+    .classification-options {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+      margin: 30px 0;
+    }
+
+    .option-btn {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(184, 0, 255, 0.2) 100%);
+      border: 2px solid #00d4ff;
+      border-radius: 10px;
+      padding: 20px;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+      font-family: 'Orbitron', 'Courier New', monospace;
+    }
+
+    .option-btn:hover {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.4) 0%, rgba(184, 0, 255, 0.4) 100%);
+      transform: translateX(10px);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+    }
+
+    .option-btn.selected {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.6) 0%, rgba(184, 0, 255, 0.6) 100%);
+      border-color: #b800ff;
+      box-shadow: 0 0 30px rgba(184, 0, 255, 0.8);
+    }
+
+    .option-btn.correct {
+      background: linear-gradient(135deg, rgba(0, 255, 100, 0.6) 0%, rgba(0, 200, 80, 0.6) 100%);
+      border-color: #00ff64;
+      box-shadow: 0 0 30px rgba(0, 255, 100, 0.8);
+    }
+
+    .option-btn.incorrect {
+      background: linear-gradient(135deg, rgba(255, 0, 100, 0.6) 0%, rgba(200, 0, 80, 0.6) 100%);
+      border-color: #ff0064;
+      box-shadow: 0 0 30px rgba(255, 0, 100, 0.8);
+    }
+
+    .step-container {
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid #00d4ff;
+      border-radius: 15px;
+      padding: 25px;
+      margin: 20px 0;
+      animation: stepFadeIn 0.5s ease;
+    }
+
+    @keyframes stepFadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-title {
+      font-size: 24px;
+      color: #00d4ff;
+      text-align: center;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px #00d4ff;
+    }
+
+    .split-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .split-btn {
+      background: linear-gradient(135deg, rgba(255, 165, 0, 0.2) 0%, rgba(255, 100, 0, 0.2) 100%);
+      border: 2px solid #ffa500;
+      border-radius: 10px;
+      padding: 20px;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      font-family: 'Orbitron', 'Courier New', monospace;
+    }
+
+    .split-btn:hover {
+      background: linear-gradient(135deg, rgba(255, 165, 0, 0.4) 0%, rgba(255, 100, 0, 0.4) 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+    }
+
+    .split-btn.selected {
+      background: linear-gradient(135deg, rgba(255, 165, 0, 0.6) 0%, rgba(255, 100, 0, 0.6) 100%);
+      border-color: #ff6400;
+      box-shadow: 0 0 30px rgba(255, 165, 0, 0.8);
+    }
+
+    .arrangement-area {
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid #b800ff;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .target-equation {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+      min-height: 60px;
+      flex-wrap: wrap;
+    }
+
+    .drop-zone {
+      min-width: 120px;
+      min-height: 50px;
+      border: 2px dashed #b800ff;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(184, 0, 255, 0.1);
+      color: #b800ff;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .drop-zone.filled {
+      border: 2px solid #00ff64;
+      background: rgba(0, 255, 100, 0.2);
+      color: #fff;
+    }
+
+    .drop-zone.drag-over {
+      border-color: #00d4ff;
+      background: rgba(0, 212, 255, 0.2);
+      transform: scale(1.05);
+    }
+
+    .draggable-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .draggable-piece {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(184, 0, 255, 0.3) 100%);
+      border: 2px solid #00d4ff;
+      border-radius: 8px;
+      padding: 10px 15px;
+      color: #fff;
+      font-size: 16px;
+      cursor: grab;
+      transition: all 0.3s ease;
+      user-select: none;
+      font-family: 'Orbitron', 'Courier New', monospace;
+    }
+
+    .draggable-piece:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+    }
+
+    .draggable-piece.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+      transform: rotate(5deg);
+    }
+
+    .draggable-piece.used {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .equation-text {
+      color: #00d4ff;
+      font-size: 18px;
+      margin: 0 5px;
+    }
+
+    .limit-setup {
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid #00d4ff;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    .limit-setup-title {
+      font-size: 20px;
+      color: #b800ff;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+
+    .limit-notation {
+      font-size: 28px;
+      text-align: center;
+      color: #00d4ff;
+      margin: 20px 0;
+      text-shadow: 0 0 10px #00d4ff;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+
+    .btn {
+      padding: 15px 40px;
+      border: 2px solid #00d4ff;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.3) 0%, rgba(184, 0, 255, 0.3) 100%);
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .btn:hover {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.6) 0%, rgba(184, 0, 255, 0.6) 100%);
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .feedback-message {
+      text-align: center;
+      font-size: 24px;
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .feedback-message.show {
+      display: block;
+    }
+
+    .feedback-message.success {
+      background: rgba(0, 255, 100, 0.2);
+      border: 2px solid #00ff64;
+      color: #00ff64;
+    }
+
+    .feedback-message.error {
+      background: rgba(255, 0, 100, 0.2);
+      border: 2px solid #ff0064;
+      color: #ff0064;
+    }
+
+    .warning-message {
+      background: rgba(255, 165, 0, 0.2);
+      border: 2px solid #ffa500;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+      color: #ffa500;
+      font-size: 18px;
+      animation: warningPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes warningPulse {
+      0%, 100% { 
+        box-shadow: 0 0 20px rgba(255, 165, 0, 0.3);
+      }
+      50% { 
+        box-shadow: 0 0 40px rgba(255, 165, 0, 0.6);
+      }
+    }
+
+    /* Floating Math Symbols */
+    .math-symbol {
+      position: absolute;
+      font-size: 40px;
+      color: rgba(0, 212, 255, 0.3);
+      animation: floatSymbol 10s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes floatSymbol {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.5; }
+      90% { opacity: 0.5; }
+      100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+    }
+
+    /* Title Screen */
+    .title-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, #0a0e27 0%, #020208 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .title-screen.hidden {
+      display: none;
+    }
+
+    /* Mission Briefing Screen */
+    .briefing-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, #0a0e27 0%, #020208 100%);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .briefing-screen.active {
+      display: flex;
+    }
+
+    .briefing-content {
+      background: linear-gradient(135deg, rgba(10, 14, 39, 0.95) 0%, rgba(20, 10, 40, 0.95) 100%);
+      border: 3px solid #00d4ff;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      width: 90%;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 0 50px rgba(0, 212, 255, 0.5), inset 0 0 30px rgba(0, 212, 255, 0.1);
+      animation: slideIn 0.5s ease;
+      text-align: center;
+    }
+
+    .briefing-title {
+      font-size: 48px;
+      color: #00d4ff;
+      text-shadow: 0 0 30px #00d4ff, 0 0 60px #b800ff;
+      margin-bottom: 30px;
+      text-align: center;
+      animation: glow 2s ease-in-out infinite;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .briefing-message {
+      text-align: left;
+      margin: 30px 0;
+    }
+
+    .welcome-text {
+      font-size: 32px;
+      color: #00ff64;
+      text-shadow: 0 0 20px #00ff64;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .mission-text {
+      font-size: 20px;
+      color: #fff;
+      line-height: 1.6;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+
+    .warning-text {
+      background: rgba(255, 165, 0, 0.2);
+      border: 2px solid #ffa500;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 25px 0;
+      text-align: center;
+      color: #ffa500;
+      font-size: 18px;
+      animation: warningPulse 2s ease-in-out infinite;
+    }
+
+    .objective-text {
+      background: rgba(0, 212, 255, 0.1);
+      border: 2px solid #00d4ff;
+      border-radius: 15px;
+      padding: 25px;
+      margin: 25px 0;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    .objective-text strong {
+      color: #00d4ff;
+      font-size: 22px;
+      display: block;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .objective-text ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .objective-text li {
+      margin: 12px 0;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+      font-size: 16px;
+    }
+
+    .objective-text li:last-child {
+      border-bottom: none;
+    }
+
+    .begin-btn {
+      padding: 20px 60px;
+      font-size: 24px;
+      background: linear-gradient(135deg, #00ff64 0%, #00d4ff 100%);
+      border: none;
+      border-radius: 15px;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      box-shadow: 0 0 30px rgba(0, 255, 100, 0.5);
+      margin-top: 30px;
+    }
+
+    .begin-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 50px rgba(0, 255, 100, 0.8);
+      background: linear-gradient(135deg, #00ff64 0%, #b800ff 100%);
+    }
+
+    .game-title {
+      font-size: 64px;
+      color: #00d4ff;
+      text-shadow: 0 0 30px #00d4ff, 0 0 60px #b800ff;
+      margin-bottom: 20px;
+      text-align: center;
+      animation: glow 2s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+      0%, 100% { text-shadow: 0 0 30px #00d4ff, 0 0 60px #b800ff; }
+      50% { text-shadow: 0 0 40px #00d4ff, 0 0 80px #b800ff; }
+    }
+
+    .game-subtitle {
+      font-size: 24px;
+      color: #b800ff;
+      margin-bottom: 50px;
+      text-align: center;
+    }
+
+    .start-btn {
+      padding: 20px 60px;
+      font-size: 24px;
+      background: linear-gradient(135deg, #00d4ff 0%, #b800ff 100%);
+      border: none;
+      border-radius: 15px;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Orbitron', 'Courier New', monospace;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+    }
+
+    .start-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 50px rgba(0, 212, 255, 0.8);
+    }
+
+    @media (max-width: 768px) {
+      .game-title {
+        font-size: 40px;
+      }
+
+      .game-subtitle {
+        font-size: 18px;
+      }
+
+      .briefing-title {
+        font-size: 32px;
+      }
+
+      .welcome-text {
+        font-size: 24px;
+      }
+
+      .mission-text {
+        font-size: 16px;
+      }
+
+      .briefing-content {
+        padding: 20px;
+      }
+
+      .begin-btn {
+        padding: 15px 40px;
+        font-size: 18px;
+      }
+
+      .hud-value {
+        font-size: 20px;
+      }
+
+      .progress-bar-container {
+        width: 150px;
+      }
+
+      .planet {
+        width: 80px !important;
+        height: 80px !important;
+      }
+
+      .planet-label {
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+
+      .challenge-content {
+        padding: 20px;
+      }
+
+      .challenge-title {
+        font-size: 24px;
+      }
+
+      .integral-display {
+        font-size: 24px;
+        padding: 20px;
+      }
+
+      .integral-symbol {
+        font-size: 32px;
+      }
+
+      .solar-systems-grid {
+        grid-template-columns: 1fr;
+        padding: 20px;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body><!-- Title Screen -->
+  <div class="title-screen" id="titleScreen">
+   <div class="game-title">
+    LIMIT BREAKER
+   </div>
+   <div class="game-subtitle">
+    Improper Integrals
+   </div><button class="start-btn" id="startBtn">Launch Mission</button>
+  </div><!-- Mission Briefing Screen -->
+  <div class="briefing-screen" id="briefingScreen">
+   <div class="briefing-content">
+    <div class="briefing-title">
+     🚀 MISSION BRIEFING 🚀
+    </div>
+    <div class="briefing-message">
+     <div class="welcome-text">
+      Welcome, Space Heroes!
+     </div>
+     <div class="mission-text">
+      You have been called to save TWELVE planets across FOUR different solar systems from destruction. Each planet is being consumed by an unstable black hole that can only be stabilized by solving improper integral equations.
+     </div>
+     <div class="warning-text">
+      ⚠️ <strong>WARNING:</strong> You have only ONE chance per planet. Failure means the planet will be lost forever!
+     </div>
+     <div class="objective-text"><strong>Your Mission:</strong>
+      <ul>
+       <li>🌌 Choose a solar system to explore</li>
+       <li>🌍 Visit each planet by clicking on it</li>
+       <li>🧮 Solve the improper integral challenge</li>
+       <li>🕳️ Stabilize the black hole to save the planet</li>
+       <li>⭐ Complete all planets in a system to unlock the next</li>
+      </ul>
+     </div>
+    </div><button class="begin-btn" id="beginBtn">Begin Mission</button>
+   </div>
+  </div><!-- Solar System Selection Screen -->
+  <div class="solar-system-screen" id="solarSystemScreen">
+   <div class="galaxy-header">
+    <div class="galaxy-title">
+     🌌 Galaxy Map 🌌
+    </div>
+    <div class="total-score-display" id="totalScoreDisplay">
+     <div class="total-score-label">
+      Total Score Achieved
+     </div>
+     <div class="total-score-value" id="totalScoreValue">
+      0
+     </div>
+    </div>
+   </div>
+   <div class="solar-systems-grid" id="solarSystemsGrid"><!-- Solar systems will be populated by JavaScript -->
+   </div>
+  </div><!-- Congratulations Modal -->
+  <div class="congratulations-modal" id="congratulationsModal">
+   <div class="congratulations-content">
+    <div class="congratulations-title">
+     🎉 GALAXY SAVED! 🎉
+    </div>
+    <div class="congratulations-message"><strong>INCREDIBLE ACHIEVEMENT, SPACE HERO!</strong><br><br>
+      You have successfully completed your mission across all four solar systems! Your mastery of improper integrals has saved countless worlds and brought peace to the galaxy.
+    </div>
+    <div class="final-achievement">
+     🏆 <strong>MASTER OF IMPROPER INTEGRALS</strong> 🏆<br>
+      You have proven yourself as the ultimate Space Hero mathematician!
+    </div>
+    <div class="celebration-stats" id="celebrationStats"><!-- Stats will be populated by JavaScript -->
+    </div><button class="continue-exploring-btn" id="continueExploringBtn">Continue Exploring Galaxy</button>
+   </div>
+  </div><!-- Mission Summary Screen -->
+  <div class="summary-screen" id="summaryScreen">
+   <div class="summary-content">
+    <div class="summary-title">
+     🎉 MISSION COMPLETE! 🎉
+    </div>
+    <div class="summary-stats" id="summaryStats"><!-- Stats will be populated by JavaScript -->
+    </div>
+    <div class="summary-message" id="summaryMessage"><!-- Message will be populated by JavaScript -->
+    </div><button class="restart-btn" id="restartBtn">New Mission</button>
+   </div>
+  </div><!-- Solar System Summary Screen -->
+  <div class="summary-screen" id="systemSummaryScreen">
+   <div class="summary-content">
+    <div class="summary-title" id="systemSummaryTitle">
+     🌟 SYSTEM COMPLETE! 🌟
+    </div>
+    <div class="summary-stats" id="systemSummaryStats"><!-- Stats will be populated by JavaScript -->
+    </div>
+    <div class="summary-message" id="systemSummaryMessage"><!-- Message will be populated by JavaScript -->
+    </div>
+    <div class="action-buttons"><button class="btn" id="continueToGalaxyBtn">Continue to Galaxy Map</button> <button class="btn" id="nextSystemBtn" style="display: none;">Next System</button>
+    </div>
+   </div>
+  </div><!-- Starfield -->
+  <div class="starfield" id="starfield"></div><!-- Main Game Container -->
+  <div class="game-container"><!-- HUD Header -->
+   <div class="hud-header">
+    <div class="hud-item">
+     <div class="hud-label">
+      Timer
+     </div>
+     <div class="hud-value" id="timer">
+      00:00
+     </div>
+    </div>
+    <div class="hud-item">
+     <div class="hud-label">
+      Mission Progress
+     </div>
+     <div class="progress-bar-container">
+      <div class="progress-bar" id="progressBar"></div>
+     </div>
+    </div>
+    <div class="hud-item">
+     <div class="hud-label">
+      Score
+     </div>
+     <div class="hud-value" id="score">
+      0
+     </div>
+    </div><button class="galaxy-map-btn" id="galaxyMapBtn">🌌 Galaxy Map</button>
+   </div><!-- Space Scene -->
+   <div class="space-scene" id="spaceScene"><!-- Spaceship -->
+    <div class="spaceship" id="spaceship">
+     <svg viewbox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs>
+       <lineargradient id="shipGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#b800ff;stop-opacity:1" />
+       </lineargradient>
+      </defs> <polygon points="50,10 70,70 50,60 30,70" fill="url(#shipGradient)" stroke="#fff" stroke-width="2" /> <circle cx="50" cy="40" r="8" fill="#fff" opacity="0.8" /> <polygon points="30,70 20,90 30,85" fill="#00d4ff" opacity="0.7" /> <polygon points="70,70 80,90 70,85" fill="#00d4ff" opacity="0.7" />
+     </svg>
+    </div><!-- Planets -->
+    <div class="planet-container type1" data-type="type1" data-problem="0">
+     <div class="planet-label">
+      Planet Alpha
+     </div>
+     <div class="planet type1"></div>
+    </div>
+    <div class="planet-container type2" data-type="type2" data-problem="1">
+     <div class="planet-label">
+      Planet Beta
+     </div>
+     <div class="planet type2"></div>
+    </div>
+    <div class="planet-container type3" data-type="type3" data-problem="2">
+     <div class="planet-label">
+      Planet Gamma
+     </div>
+     <div class="planet type3"></div>
+    </div>
+   </div>
+  </div><!-- Challenge Modal -->
+  <div class="challenge-modal" id="challengeModal">
+   <div class="challenge-content">
+    <div class="challenge-title" id="challengeTitle">
+     Planet Challenge
+    </div>
+    <div class="integral-display" id="integralDisplay"><span class="integral-symbol">∫</span> <span id="integralExpression"></span>
+    </div>
+    <div class="warning-message">
+     ⚠️ <strong>CRITICAL WARNING:</strong> You have only ONE chance to answer correctly! If you fail, the black hole will consume the planet forever!
+    </div><!-- Step 1: Classification -->
+    <div class="step-container" id="step1">
+     <div class="step-title">
+      Step 1: Classify the Integral Type
+     </div>
+     <div class="classification-options" id="classificationOptions"><button class="option-btn" data-answer="type1"> <strong>Type 1: Infinite Limit</strong><br>
+        One or both limits of integration are infinite (±∞) </button> <button class="option-btn" data-answer="type2"> <strong>Type 2: Discontinuity</strong><br>
+        Integrand has a discontinuity within the interval </button> <button class="option-btn" data-answer="type3"> <strong>Type 3: Mixed (Both)</strong><br>
+        Has infinite limits AND discontinuity in the integrand </button>
+     </div>
+    </div><!-- Step 2: Split Decision -->
+    <div class="step-container" id="step2" style="display: none;">
+     <div class="step-title">
+      Step 2: Does this integral need to be split?
+     </div>
+     <div class="split-options"><button class="split-btn" data-split="yes"> <strong>YES</strong> - Split into multiple integrals </button> <button class="split-btn" data-split="no"> <strong>NO</strong> - Single integral is sufficient </button>
+     </div>
+    </div><!-- Step 3: Arrangement (only if split needed) -->
+    <div class="step-container" id="step3" style="display: none;">
+     <div class="step-title">
+      Step 3: Arrange the Split Integral
+     </div>
+     <div class="arrangement-area">
+      <div class="target-equation" id="targetEquation"><!-- Will be populated with drag targets -->
+      </div>
+      <div class="draggable-options" id="draggableOptions"><!-- Will be populated with draggable pieces -->
+      </div>
+     </div>
+    </div><!-- Final Setup Display -->
+    <div class="limit-setup" id="limitSetup" style="display: none;">
+     <div class="limit-setup-title">
+      Final Limit Notation:
+     </div>
+     <div class="limit-notation" id="limitNotation"></div>
+    </div>
+    <div class="feedback-message" id="feedbackMessage"></div>
+    <div class="action-buttons"><button class="btn" id="submitBtn">Submit Answer</button>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Game State
+    let gameState = {
+      score: 0,
+      timer: 0,
+      timerInterval: null,
+      completedChallenges: 0,
+      totalChallenges: 12,
+      currentSolarSystem: 0,
+      currentChallenge: null,
+      selectedType: null,
+      selectedSplit: null,
+      currentStep: 1,
+      arrangement: {},
+      solarSystemProgress: [
+        { completed: 0, planets: [null, null, null], score: 0, time: 0, summaryShown: false }, // Andromeda
+        { completed: 0, planets: [null, null, null], score: 0, time: 0, summaryShown: false }, // Centauri
+        { completed: 0, planets: [null, null, null], score: 0, time: 0, summaryShown: false }, // Vega
+        { completed: 0, planets: [null, null, null], score: 0, time: 0, summaryShown: false }  // Orion
+      ],
+      globalStats: {
+        saved: 0,
+        partial: 0,
+        destroyed: 0
+      },
+      systemStartTime: 0,
+      systemStartScore: 0,
+      totalScoreAchieved: 0,
+      allSystemsCompleted: false
+    };
+
+    // Solar System Data
+    const solarSystems = [
+      {
+        name: "Andromeda System",
+        description: "Basic improper integrals with infinite limits and simple discontinuities.",
+        difficulty: "Beginner",
+        unlocked: true
+      },
+      {
+        name: "Centauri System", 
+        description: "Intermediate challenges with mixed integral types and splitting decisions.",
+        difficulty: "Intermediate",
+        unlocked: false
+      },
+      {
+        name: "Vega System",
+        description: "Advanced problems requiring complex limit arrangements and analysis.",
+        difficulty: "Advanced",
+        unlocked: false
+      },
+      {
+        name: "Orion System",
+        description: "Expert-level integrals with multiple discontinuities and infinite bounds.",
+        difficulty: "Expert",
+        unlocked: false
+      }
+    ];
+
+    // Challenge Data - 15 challenges across 5 solar systems
+    const challenges = [
+      // Andromeda System (Beginner) - 3 challenges
+      {
+        system: 0,
+        type: 'type1',
+        expression: '<sup>∞</sup><sub>1</sub> (1/x²) dx',
+        correctType: 'type1',
+        needsSplit: false,
+        limitNotation: 'lim[t→∞] ∫₁ᵗ (1/x²) dx',
+        explanation: 'Upper limit is infinite, single limit needed'
+      },
+      {
+        system: 0,
+        type: 'type2',
+        expression: '<sup>1</sup><sub>0</sub> (1/√x) dx',
+        correctType: 'type2',
+        needsSplit: false,
+        limitNotation: 'lim[t→0⁺] ∫ₜ¹ (1/√x) dx',
+        explanation: 'Discontinuity at x = 0, single limit needed'
+      },
+      {
+        system: 0,
+        type: 'type1',
+        expression: '<sup>0</sup><sub>-∞</sub> e^x dx',
+        correctType: 'type1',
+        needsSplit: false,
+        limitNotation: 'lim[t→-∞] ∫ₜ⁰ eˣ dx',
+        explanation: 'Lower limit is negative infinity, single limit needed'
+      },
+      
+      // Centauri System (Intermediate) - 3 challenges
+      {
+        system: 1,
+        type: 'type2',
+        expression: '<sup>2</sup><sub>0</sub> (1/(x-1)²) dx',
+        correctType: 'type2',
+        needsSplit: false,
+        limitNotation: 'lim[t→1⁻] ∫₀ᵗ (1/(x-1)²) dx + lim[s→1⁺] ∫ₛ² (1/(x-1)²) dx',
+        explanation: 'Discontinuity at x = 1, needs splitting at discontinuity'
+      },
+      {
+        system: 1,
+        type: 'type1',
+        expression: '<sup>∞</sup><sub>-∞</sub> (1/(1+x²)) dx',
+        correctType: 'type1',
+        needsSplit: true,
+        splitTemplate: [
+          { type: 'text', content: 'lim' },
+          { type: 'drop', id: 'limit1', placeholder: '[a→?]' },
+          { type: 'text', content: '∫' },
+          { type: 'drop', id: 'bound1', placeholder: 'lower' },
+          { type: 'drop', id: 'bound2', placeholder: 'upper' },
+          { type: 'text', content: '(1/(1+x²)) dx + lim' },
+          { type: 'drop', id: 'limit2', placeholder: '[b→?]' },
+          { type: 'text', content: '∫' },
+          { type: 'drop', id: 'bound3', placeholder: 'lower' },
+          { type: 'drop', id: 'bound4', placeholder: 'upper' },
+          { type: 'text', content: '(1/(1+x²)) dx' }
+        ],
+        correctArrangement: {
+          limit1: '[a→-∞]',
+          bound1: 'a',
+          bound2: '0',
+          limit2: '[b→∞]',
+          bound3: '0',
+          bound4: 'b'
+        },
+        draggablePieces: ['[a→-∞]', '[b→∞]', '[a→0⁺]', '[b→0⁻]', 'a', '0', '0', 'b', '1', '∞'],
+        explanation: 'Both limits infinite, must split at intermediate point'
+      },
+      {
+        system: 1,
+        type: 'type2',
+        expression: '<sup>3</sup><sub>1</sub> (1/√(x-2)) dx',
+        correctType: 'type2',
+        needsSplit: false,
+        limitNotation: 'lim[t→2⁻] ∫₁ᵗ (1/√(x-2)) dx + lim[s→2⁺] ∫ₛ³ (1/√(x-2)) dx',
+        explanation: 'Discontinuity at x = 2, needs splitting'
+      },
+      
+      // Vega System (Advanced) - 3 challenges
+      {
+        system: 2,
+        type: 'type3',
+        expression: '<sup>∞</sup><sub>0</sub> (1/(x√x)) dx',
+        correctType: 'type3',
+        needsSplit: true,
+        splitTemplate: [
+          { type: 'text', content: 'lim' },
+          { type: 'drop', id: 'limit1', placeholder: '[a→?]' },
+          { type: 'text', content: '∫' },
+          { type: 'drop', id: 'bound1', placeholder: 'lower' },
+          { type: 'drop', id: 'bound2', placeholder: 'upper' },
+          { type: 'text', content: '(1/(x√x)) dx + lim' },
+          { type: 'drop', id: 'limit2', placeholder: '[b→?]' },
+          { type: 'text', content: '∫' },
+          { type: 'drop', id: 'bound3', placeholder: 'lower' },
+          { type: 'drop', id: 'bound4', placeholder: 'upper' },
+          { type: 'text', content: '(1/(x√x)) dx' }
+        ],
+        correctArrangement: {
+          limit1: '[a→0⁺]',
+          bound1: 'a',
+          bound2: '1',
+          limit2: '[b→∞]',
+          bound3: '1',
+          bound4: 'b'
+        },
+        draggablePieces: ['[a→0⁺]', '[b→∞]', '[a→0⁻]', '[b→-∞]', 'a', '1', '1', 'b', '0', '∞'],
+        explanation: 'Has infinite upper limit AND discontinuity at x=0, must split at intermediate point'
+      },
+      {
+        system: 2,
+        type: 'type1',
+        expression: '<sup>∞</sup><sub>1</sub> (ln x)/x² dx',
+        correctType: 'type1',
+        needsSplit: false,
+        limitNotation: 'lim[t→∞] ∫₁ᵗ (ln x)/x² dx',
+        explanation: 'Upper limit infinite, integrand continuous on [1,∞)'
+      },
+      {
+        system: 2,
+        type: 'type2',
+        expression: '<sup>1</sup><sub>0</sub> (ln x) dx',
+        correctType: 'type2',
+        needsSplit: false,
+        limitNotation: 'lim[t→0⁺] ∫ₜ¹ (ln x) dx',
+        explanation: 'Discontinuity at x = 0 (ln x → -∞)'
+      },
+      
+      // Orion System (Expert) - 3 challenges
+      {
+        system: 3,
+        type: 'type3',
+        expression: '<sup>∞</sup><sub>-∞</sub> (1/(x²-1)) dx',
+        correctType: 'type3',
+        needsSplit: true,
+        splitTemplate: [
+          { type: 'text', content: 'lim' },
+          { type: 'drop', id: 'limit1', placeholder: '[a→?]' },
+          { type: 'text', content: '∫' },
+          { type: 'drop', id: 'bound1', placeholder: 'lower' },
+          { type: 'drop', id: 'bound2', placeholder: 'upper' },
+          { type: 'text', content: '(1/(x²-1)) dx + lim' },
+          { type: 'drop', id: 'limit2', placeholder: '[b→?]' },
+          { type: 'text', content: '∫' },
+          { type: 'drop', id: 'bound3', placeholder: 'lower' },
+          { type: 'drop', id: 'bound4', placeholder: 'upper' },
+          { type: 'text', content: '(1/(x²-1)) dx + lim' },
+          { type: 'drop', id: 'limit3', placeholder: '[c→?]' },
+          { type: 'text', content: '∫' },
+          { type: 'drop', id: 'bound5', placeholder: 'lower' },
+          { type: 'drop', id: 'bound6', placeholder: 'upper' },
+          { type: 'text', content: '(1/(x²-1)) dx' }
+        ],
+        correctArrangement: {
+          limit1: '[a→-∞]',
+          bound1: 'a',
+          bound2: '-1',
+          limit2: '[b→-1⁺]',
+          bound3: 'b',
+          bound4: '1',
+          limit3: '[c→∞]',
+          bound5: '1',
+          bound6: 'c'
+        },
+        draggablePieces: ['[a→-∞]', '[b→-1⁺]', '[c→∞]', '[d→1⁻]', 'a', 'b', 'c', '-1', '1', '0'],
+        explanation: 'Infinite limits AND discontinuities at x = ±1, needs triple split'
+      },
+      {
+        system: 3,
+        type: 'type2',
+        expression: '<sup>π</sup><sub>0</sub> (1/sin x) dx',
+        correctType: 'type2',
+        needsSplit: false,
+        limitNotation: 'lim[t→0⁺] ∫ₜᵖ (1/sin x) dx',
+        explanation: 'Discontinuity at x = 0 and x = π'
+      },
+      {
+        system: 3,
+        type: 'type1',
+        expression: '<sup>∞</sup><sub>0</sub> x e^(-x²) dx',
+        correctType: 'type1',
+        needsSplit: false,
+        limitNotation: 'lim[t→∞] ∫₀ᵗ x e^(-x²) dx',
+        explanation: 'Upper limit infinite, integrand continuous on [0,∞)'
+      },
+      
+
+    ];
+
+    // Initialize Starfield
+    function createStarfield() {
+      const starfield = document.getElementById('starfield');
+      for (let i = 0; i < 200; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.width = Math.random() * 3 + 1 + 'px';
+        star.style.height = star.style.width;
+        star.style.animationDelay = Math.random() * 3 + 's';
+        starfield.appendChild(star);
+      }
+    }
+
+    // Create Floating Math Symbols
+    function createMathSymbols() {
+      const symbols = ['∫', '∞', 'lim', 'dx', '∂', 'Σ', '∆'];
+      const spaceScene = document.getElementById('spaceScene');
+      
+      setInterval(() => {
+        const symbol = document.createElement('div');
+        symbol.className = 'math-symbol';
+        symbol.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        symbol.style.left = Math.random() * 100 + '%';
+        symbol.style.animationDuration = (Math.random() * 5 + 8) + 's';
+        spaceScene.appendChild(symbol);
+        
+        setTimeout(() => symbol.remove(), 10000);
+      }, 2000);
+    }
+
+    // Start Game
+    document.getElementById('startBtn').addEventListener('click', () => {
+      document.getElementById('titleScreen').classList.add('hidden');
+      document.getElementById('briefingScreen').classList.add('active');
+    });
+
+    // Timer
+    function startTimer() {
+      if (gameState.timerInterval) return; // Prevent multiple intervals
+      gameState.timerInterval = setInterval(() => {
+        gameState.timer++;
+        const minutes = Math.floor(gameState.timer / 60).toString().padStart(2, '0');
+        const seconds = (gameState.timer % 60).toString().padStart(2, '0');
+        document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+      }, 1000);
+    }
+
+    // Pause Timer
+    function pauseTimer() {
+      if (gameState.timerInterval) {
+        clearInterval(gameState.timerInterval);
+        gameState.timerInterval = null;
+      }
+    }
+
+    // Resume Timer
+    function resumeTimer() {
+      if (!gameState.timerInterval) {
+        startTimer();
+      }
+    }
+
+    // Update Progress
+    function updateProgress() {
+      const progress = (gameState.completedChallenges / gameState.totalChallenges) * 100;
+      document.getElementById('progressBar').style.width = progress + '%';
+    }
+
+    // Update Score
+    function updateScore(points) {
+      gameState.score += points;
+      document.getElementById('score').textContent = gameState.score;
+    }
+
+    // Planet Click Handler
+    document.querySelectorAll('.planet-container').forEach(planetContainer => {
+      planetContainer.addEventListener('click', () => {
+        const problemIndex = parseInt(planetContainer.dataset.problem);
+        openChallenge(problemIndex);
+        
+        // Move spaceship to planet
+        const spaceship = document.getElementById('spaceship');
+        const planet = planetContainer.querySelector('.planet');
+        const planetRect = planet.getBoundingClientRect();
+        const sceneRect = document.getElementById('spaceScene').getBoundingClientRect();
+        
+        spaceship.style.left = (planetRect.left - sceneRect.left + planetRect.width / 2) + 'px';
+        spaceship.style.top = (planetRect.top - sceneRect.top + planetRect.height / 2) + 'px';
+      });
+    });
+
+    // Open Challenge Modal
+    function openChallenge(index) {
+      const challenge = challenges[index];
+      gameState.currentChallenge = challenge;
+      gameState.selectedType = null;
+      gameState.selectedSplit = null;
+      gameState.currentStep = 1;
+      gameState.arrangement = {};
+      
+      const systemIndex = Math.floor(index / 3);
+      const planetIndex = index % 3;
+      const currentPlanetName = planetNames[systemIndex][planetIndex];
+      document.getElementById('challengeTitle').textContent = `Stabilize ${currentPlanetName}'s Black Hole`;
+      document.getElementById('integralExpression').innerHTML = challenge.expression;
+      document.getElementById('challengeModal').classList.add('active');
+      
+      // Reset all steps
+      document.getElementById('step1').style.display = 'block';
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'none';
+      document.getElementById('limitSetup').style.display = 'none';
+      document.getElementById('feedbackMessage').classList.remove('show');
+      
+      // Reset buttons
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.classList.remove('selected', 'correct', 'incorrect');
+      });
+      document.querySelectorAll('.split-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+    }
+
+    // Step 1: Classification Option Selection
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        gameState.selectedType = btn.dataset.answer;
+        
+        // Show step 2
+        setTimeout(() => {
+          document.getElementById('step2').style.display = 'block';
+        }, 300);
+      });
+    });
+
+    // Step 2: Split Decision
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('split-btn')) {
+        document.querySelectorAll('.split-btn').forEach(b => b.classList.remove('selected'));
+        e.target.classList.add('selected');
+        gameState.selectedSplit = e.target.dataset.split;
+        
+        // Don't automatically show step 3 - wait for submission first
+      }
+    });
+
+    // Setup Arrangement Step
+    function setupArrangementStep() {
+      const challenge = gameState.currentChallenge;
+      if (!challenge.splitTemplate) return;
+
+      const targetEquation = document.getElementById('targetEquation');
+      const draggableOptions = document.getElementById('draggableOptions');
+      
+      // Clear previous content
+      targetEquation.innerHTML = '';
+      draggableOptions.innerHTML = '';
+      
+      // Build target equation with drop zones
+      challenge.splitTemplate.forEach(item => {
+        if (item.type === 'text') {
+          const span = document.createElement('span');
+          span.className = 'equation-text';
+          span.textContent = item.content;
+          targetEquation.appendChild(span);
+        } else if (item.type === 'drop') {
+          const dropZone = document.createElement('div');
+          dropZone.className = 'drop-zone';
+          dropZone.dataset.dropId = item.id;
+          dropZone.textContent = item.placeholder;
+          targetEquation.appendChild(dropZone);
+        }
+      });
+      
+      // Create draggable pieces
+      challenge.draggablePieces.forEach((piece, index) => {
+        const draggable = document.createElement('div');
+        draggable.className = 'draggable-piece';
+        draggable.textContent = piece;
+        draggable.draggable = true;
+        draggable.dataset.piece = piece;
+        draggable.dataset.index = index;
+        draggableOptions.appendChild(draggable);
+      });
+      
+      setupDragAndDrop();
+    }
+
+    // Drag and Drop Functionality
+    function setupDragAndDrop() {
+      const draggables = document.querySelectorAll('.draggable-piece');
+      const dropZones = document.querySelectorAll('.drop-zone');
+      
+      draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', e.target.dataset.piece);
+          e.target.classList.add('dragging');
+        });
+        
+        draggable.addEventListener('dragend', (e) => {
+          e.target.classList.remove('dragging');
+        });
+      });
+      
+      dropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          zone.classList.add('drag-over');
+        });
+        
+        zone.addEventListener('dragleave', () => {
+          zone.classList.remove('drag-over');
+        });
+        
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const piece = e.dataTransfer.getData('text/plain');
+          const dropId = zone.dataset.dropId;
+          
+          // Update arrangement
+          gameState.arrangement[dropId] = piece;
+          
+          // Update UI
+          zone.textContent = piece;
+          zone.classList.add('filled');
+          zone.classList.remove('drag-over');
+          
+          // Mark draggable as used
+          const draggable = document.querySelector(`[data-piece="${piece}"]`);
+          if (draggable) {
+            draggable.classList.add('used');
+          }
+          
+          // Check if arrangement is complete
+          checkArrangementComplete();
+        });
+      });
+    }
+
+    // Check if arrangement is complete
+    function checkArrangementComplete() {
+      const challenge = gameState.currentChallenge;
+      const requiredDrops = challenge.splitTemplate.filter(item => item.type === 'drop').length;
+      
+      if (Object.keys(gameState.arrangement).length === requiredDrops) {
+        // Don't show final notation until after submission
+        // Just indicate that arrangement is complete
+        console.log('Arrangement complete, ready for submission');
+      }
+    }
+
+    // Build final notation from arrangement
+    function buildFinalNotation() {
+      const challenge = gameState.currentChallenge;
+      let notation = '';
+      
+      challenge.splitTemplate.forEach(item => {
+        if (item.type === 'text') {
+          notation += item.content;
+        } else if (item.type === 'drop') {
+          const value = gameState.arrangement[item.id] || '?';
+          // Convert to proper mathematical notation
+          let formattedValue = value;
+          
+          // Handle limit notation
+          if (item.id.startsWith('limit')) {
+            formattedValue = value; // Keep limit notation as is
+          }
+          // Handle integral bounds - convert to proper subscript/superscript
+          else if (item.id.startsWith('bound')) {
+            if (value === 'a' || value === 'ₐ' || value === 'ᵃ') {
+              formattedValue = 'ₐ';
+            } else if (value === 'b' || value === 'ᵇ' || value === 'ₑ') {
+              formattedValue = 'ᵇ';
+            } else if (value === '0' || value === '⁰' || value === '₀') {
+              // Determine if this should be subscript or superscript based on position
+              if (item.id === 'bound1' || item.id === 'bound3') {
+                formattedValue = '₀'; // Lower bounds are subscript
+              } else {
+                formattedValue = '⁰'; // Upper bounds are superscript
+              }
+            } else {
+              formattedValue = value;
+            }
+          }
+          
+          notation += formattedValue;
+        }
+      });
+      
+      document.getElementById('limitNotation').innerHTML = notation;
+    }
+
+    // Build correct final notation (always shows the right answer)
+    function buildCorrectFinalNotation() {
+      const challenge = gameState.currentChallenge;
+      let notation = '';
+      
+      challenge.splitTemplate.forEach(item => {
+        if (item.type === 'text') {
+          notation += item.content;
+        } else if (item.type === 'drop') {
+          const correctValue = challenge.correctArrangement[item.id];
+          let formattedValue = correctValue;
+          
+          // Handle limit notation
+          if (item.id.startsWith('limit')) {
+            formattedValue = correctValue; // Keep limit notation as is
+          }
+          // Handle integral bounds - convert to proper subscript/superscript
+          else if (item.id.startsWith('bound')) {
+            if (correctValue === 'a') {
+              formattedValue = 'ₐ';
+            } else if (correctValue === 'b') {
+              formattedValue = 'ᵇ';
+            } else if (correctValue === '0') {
+              // Determine if this should be subscript or superscript based on position
+              if (item.id === 'bound1' || item.id === 'bound3' || item.id === 'bound5') {
+                formattedValue = '₀'; // Lower bounds are subscript
+              } else {
+                formattedValue = '⁰'; // Upper bounds are superscript
+              }
+            } else if (correctValue === '-1') {
+              formattedValue = '₋₁';
+            } else if (correctValue === '1') {
+              // Determine if this should be subscript or superscript based on position
+              if (item.id === 'bound1' || item.id === 'bound3' || item.id === 'bound5') {
+                formattedValue = '₁'; // Lower bounds are subscript
+              } else {
+                formattedValue = '¹'; // Upper bounds are superscript
+              }
+            } else {
+              formattedValue = correctValue;
+            }
+          }
+          
+          notation += formattedValue;
+        }
+      });
+      
+      document.getElementById('limitNotation').innerHTML = notation;
+    }
+
+    // Submit Answer
+    document.getElementById('submitBtn').addEventListener('click', handleSubmit);
+    
+    function handleSubmit() {
+      // Validate all steps are completed
+      if (!gameState.selectedType) {
+        showFeedback('Please complete Step 1: Select integral type!', 'error');
+        return;
+      }
+      
+      if (!gameState.selectedSplit) {
+        showFeedback('Please complete Step 2: Decide if splitting is needed!', 'error');
+        return;
+      }
+      
+      const challenge = gameState.currentChallenge;
+      
+      // Check if we're in the arrangement phase (step 3 is visible)
+      const step3Visible = document.getElementById('step3').style.display !== 'none';
+      
+      if (step3Visible && challenge.splitTemplate) {
+        // We're in step 3 - check arrangement completion
+        const requiredDrops = challenge.splitTemplate.filter(item => item.type === 'drop').length;
+        if (Object.keys(gameState.arrangement).length < requiredDrops) {
+          showFeedback('Please complete Step 3: Arrange all pieces!', 'error');
+          return;
+        }
+        
+        // Final submission - evaluate everything including arrangement
+        evaluateFinalAnswer();
+      } else {
+        // First submission after step 2 - check type and split decision
+        evaluateInitialAnswer();
+      }
+    }
+    
+    function evaluateInitialAnswer() {
+      const challenge = gameState.currentChallenge;
+      let typeCorrect = gameState.selectedType === challenge.correctType;
+      let splitCorrect = (gameState.selectedSplit === 'yes') === challenge.needsSplit;
+      let scoreMultiplier = 1; // Full score by default
+      let errorMessage = '';
+      
+      // Determine scoring and feedback
+      if (typeCorrect && splitCorrect) {
+        // Both correct - full score
+        scoreMultiplier = 1;
+        const selectedTypeBtn = document.querySelector(`.option-btn[data-answer="${gameState.selectedType}"]`);
+        const selectedSplitBtn = document.querySelector(`.split-btn[data-split="${gameState.selectedSplit}"]`);
+        if (selectedTypeBtn) selectedTypeBtn.classList.add('correct');
+        if (selectedSplitBtn) selectedSplitBtn.classList.add('correct');
+        
+        if (challenge.needsSplit && gameState.selectedSplit === 'yes') {
+          // Show step 3 for arrangement
+          showFeedback('✅ Perfect! Both answers correct. Now arrange the split integral pieces.', 'success');
+          setTimeout(() => {
+            document.getElementById('step3').style.display = 'block';
+            setupArrangementStep();
+            document.getElementById('submitBtn').textContent = 'Submit Final Answer';
+          }, 1000);
+          return; // Don't complete challenge yet
+        } else {
+          // No splitting needed - complete the challenge
+          showFeedback('✅ Perfect! Both answers correct. No splitting needed for this integral.', 'success');
+          setTimeout(() => {
+            completeChallengeSuccess(scoreMultiplier);
+          }, 1000);
+          return;
+        }
+      } else if (typeCorrect || splitCorrect) {
+        // One correct - half score
+        scoreMultiplier = 0.5;
+        
+        // Mark correct and incorrect answers
+        const selectedTypeBtn = document.querySelector(`.option-btn[data-answer="${gameState.selectedType}"]`);
+        const selectedSplitBtn = document.querySelector(`.split-btn[data-split="${gameState.selectedSplit}"]`);
+        
+        if (typeCorrect) {
+          selectedTypeBtn.classList.add('correct');
+          selectedSplitBtn.classList.add('incorrect');
+          if (challenge.needsSplit) {
+            errorMessage = 'Type correct, but this integral needs to be split due to both infinite limits AND discontinuity.';
+          } else {
+            errorMessage = 'Type correct, but this integral does not need to be split - a single limit is sufficient.';
+          }
+        } else {
+          selectedTypeBtn.classList.add('incorrect');
+          selectedSplitBtn.classList.add('correct');
+          const correctTypeNum = challenge.correctType === 'type1' ? '1' : challenge.correctType === 'type2' ? '2' : '3';
+          errorMessage = `Split decision correct, but this is Type ${correctTypeNum}, not the type you selected.`;
+        }
+        
+        showFeedback(`⚠️ Partial Credit! One answer correct, one incorrect. ${errorMessage}`, 'error');
+        setTimeout(() => {
+          completeChallengeSuccess(scoreMultiplier);
+        }, 2000);
+      } else {
+        // Both wrong - no score
+        scoreMultiplier = 0;
+        const selectedTypeBtn = document.querySelector(`.option-btn[data-answer="${gameState.selectedType}"]`);
+        const selectedSplitBtn = document.querySelector(`.split-btn[data-split="${gameState.selectedSplit}"]`);
+        if (selectedTypeBtn) selectedTypeBtn.classList.add('incorrect');
+        if (selectedSplitBtn) selectedSplitBtn.classList.add('incorrect');
+        
+        const correctTypeNum = challenge.correctType === 'type1' ? '1' : challenge.correctType === 'type2' ? '2' : '3';
+        if (challenge.needsSplit) {
+          errorMessage = `Both answers incorrect. This is Type ${correctTypeNum} and needs to be split.`;
+        } else {
+          errorMessage = `Both answers incorrect. This is Type ${correctTypeNum} and does not need to be split.`;
+        }
+        
+        completeChallengeFailure(errorMessage);
+      }
+    }
+    
+    function evaluateFinalAnswer() {
+      const challenge = gameState.currentChallenge;
+      let isCorrect = true;
+      let errorMessage = '';
+      
+      // Check arrangement (we already know type and split are correct from initial submission)
+      for (const [key, correctValue] of Object.entries(challenge.correctArrangement)) {
+        const studentAnswer = gameState.arrangement[key];
+        
+        // Flexible checking for equivalent answers
+        let isAnswerCorrect = false;
+        
+        if (correctValue === '0') {
+          // Accept any form of zero (0, ⁰, ₀)
+          isAnswerCorrect = ['0', '⁰', '₀'].includes(studentAnswer);
+        } else if (correctValue === 'a') {
+          // Accept any form of 'a' (a, ₐ, ᵃ)
+          isAnswerCorrect = ['a', 'ₐ', 'ᵃ'].includes(studentAnswer);
+        } else if (correctValue === 'b') {
+          // Accept any form of 'b' (b, ᵇ, ₑ)
+          isAnswerCorrect = ['b', 'ᵇ', 'ₑ'].includes(studentAnswer);
+        } else {
+          // For other answers, require exact match
+          isAnswerCorrect = studentAnswer === correctValue;
+        }
+        
+        if (!isAnswerCorrect) {
+          isCorrect = false;
+          errorMessage = 'Incorrect arrangement of the split integral pieces.';
+          break;
+        }
+      }
+      
+      if (isCorrect) {
+        showFeedback('🎉 Perfect arrangement! Black hole stabilized!', 'success');
+        setTimeout(() => {
+          completeChallengeSuccess(1); // Full score for correct arrangement
+        }, 1000);
+      } else {
+        // Correct type but wrong arrangement = partial save (0.5 multiplier)
+        showFeedback('⚠️ Partial Credit! Correct type and split decision, but incorrect arrangement.', 'error');
+        setTimeout(() => {
+          completeChallengeSuccess(0.5); // Partial score for correct type but wrong arrangement
+        }, 2000);
+      }
+    }
+    
+    function completeChallengeSuccess(scoreMultiplier = 1) {
+      const challenge = gameState.currentChallenge;
+      const challengeIndex = challenges.indexOf(challenge);
+      const planetContainer = document.querySelector(`.planet-container[data-problem="${challengeIndex}"]`);
+      const planet = planetContainer.querySelector('.planet');
+      const planetLabel = planetContainer.querySelector('.planet-label');
+      
+      // Show the correct final notation
+      document.getElementById('limitSetup').style.display = 'block';
+      
+      // Always show the correct notation regardless of student's answer
+      if (challenge.needsSplit && challenge.splitTemplate) {
+        // For challenges that need splitting, show the correct arrangement
+        buildCorrectFinalNotation();
+      } else {
+        // For challenges that don't need splitting, show the predefined notation
+        document.getElementById('limitNotation').innerHTML = challenge.limitNotation;
+      }
+      
+      // Calculate score based on multiplier
+      const baseScore = 100;
+      const earnedScore = Math.round(baseScore * scoreMultiplier);
+      updateScore(earnedScore);
+      gameState.completedChallenges++;
+      updateProgress();
+      
+      // Update solar system progress
+      const systemIndex = gameState.currentSolarSystem;
+      const planetIndex = challengeIndex % 3;
+      const systemProgress = gameState.solarSystemProgress[systemIndex];
+      
+      // Stabilize the black hole and save the planet
+      if (scoreMultiplier === 1) {
+        planet.classList.add('saved');
+        planetLabel.textContent = '🌟 SAVED! 🌟';
+        planetLabel.style.color = '#00ff64';
+        systemProgress.planets[planetIndex] = 'saved';
+        gameState.globalStats.saved++;
+      } else {
+        planet.classList.add('partial-save');
+        planetLabel.textContent = '⭐ PARTIAL SAVE ⭐';
+        planetLabel.style.color = '#ffa500';
+        systemProgress.planets[planetIndex] = 'partial';
+        gameState.globalStats.partial++;
+      }
+      
+      systemProgress.completed++;
+      planetContainer.style.pointerEvents = 'none';
+      
+      // Disable and change submit button
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.5';
+      
+      setTimeout(() => {
+        submitBtn.textContent = 'Continue Mission';
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.removeEventListener('click', handleSubmit);
+        submitBtn.addEventListener('click', handleContinue);
+      }, 1500);
+      
+      // Check if solar system is complete
+      setTimeout(() => {
+        checkSolarSystemComplete();
+      }, 2000);
+    }
+    
+    function completeChallengeFailure(errorMessage) {
+      const challenge = gameState.currentChallenge;
+      const challengeIndex = challenges.indexOf(challenge);
+      const planetContainer = document.querySelector(`.planet-container[data-problem="${challengeIndex}"]`);
+      const planet = planetContainer.querySelector('.planet');
+      const planetLabel = planetContainer.querySelector('.planet-label');
+      
+      // Show the correct final notation for learning
+      document.getElementById('limitSetup').style.display = 'block';
+      
+      // Display the correct notation based on challenge type
+      if (challenge.needsSplit && challenge.splitTemplate) {
+        // For split integrals, show the correct arrangement
+        let correctNotation = '';
+        challenge.splitTemplate.forEach(item => {
+          if (item.type === 'text') {
+            correctNotation += item.content;
+          } else if (item.type === 'drop') {
+            const correctValue = challenge.correctArrangement[item.id];
+            let formattedValue = correctValue;
+            
+            // Handle limit notation
+            if (item.id.startsWith('limit')) {
+              formattedValue = correctValue; // Keep limit notation as is
+            }
+            // Handle integral bounds - convert to proper subscript/superscript
+            else if (item.id.startsWith('bound')) {
+              if (correctValue === 'a') {
+                formattedValue = 'ₐ';
+              } else if (correctValue === 'b') {
+                formattedValue = 'ᵇ';
+              } else if (correctValue === '0') {
+                // Determine if this should be subscript or superscript based on position
+                if (item.id === 'bound1' || item.id === 'bound3') {
+                  formattedValue = '₀'; // Lower bounds are subscript
+                } else {
+                  formattedValue = '⁰'; // Upper bounds are superscript
+                }
+              }
+            }
+            
+            correctNotation += formattedValue;
+          }
+        });
+        document.getElementById('limitNotation').innerHTML = correctNotation;
+      } else {
+        // For non-split integrals, use the predefined notation
+        document.getElementById('limitNotation').textContent = challenge.limitNotation;
+      }
+      
+      // Update the limit setup title to indicate this is the correct answer
+      document.querySelector('.limit-setup-title').textContent = 'Correct Answer (for learning):';
+      document.querySelector('.limit-setup-title').style.color = '#00ff64';
+      
+      // Update solar system progress
+      const systemIndex = gameState.currentSolarSystem;
+      const planetIndex = challengeIndex % 3;
+      const systemProgress = gameState.solarSystemProgress[systemIndex];
+      
+      const currentPlanetName = planetNames[systemIndex][planetIndex];
+      showFeedback(`💥 Planet Destroyed! The black hole consumed ${currentPlanetName}. ${errorMessage}`, 'error');
+      
+      // Destroy the planet
+      planet.classList.add('destroyed');
+      planetLabel.textContent = '💥 DESTROYED 💥';
+      planetLabel.style.color = '#ff0064';
+      
+      // Update progress tracking
+      systemProgress.planets[planetIndex] = 'destroyed';
+      systemProgress.completed++;
+      gameState.globalStats.destroyed++;
+      gameState.completedChallenges++;
+      updateProgress();
+      
+      // Disable and change submit button
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.5';
+      
+      setTimeout(() => {
+        submitBtn.textContent = 'Continue Mission';
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.removeEventListener('click', handleSubmit);
+        submitBtn.addEventListener('click', handleContinue);
+      }, 2000);
+      
+      // Check if solar system is complete
+      setTimeout(() => {
+        checkSolarSystemComplete();
+      }, 3000);
+    }
+    
+    function handleContinue() {
+      document.getElementById('challengeModal').classList.remove('active');
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.textContent = 'Submit Answer';
+      submitBtn.removeEventListener('click', handleContinue);
+      submitBtn.addEventListener('click', handleSubmit);
+      
+      // Reset limit setup title for next challenge
+      document.querySelector('.limit-setup-title').textContent = 'Final Limit Notation:';
+      document.querySelector('.limit-setup-title').style.color = '#b800ff';
+      
+      // Reset spaceship position to center
+      const spaceship = document.getElementById('spaceship');
+      spaceship.style.left = '50%';
+      spaceship.style.top = '50%';
+    }
+
+    // Show Feedback
+    function showFeedback(message, type) {
+      const feedback = document.getElementById('feedbackMessage');
+      feedback.textContent = message;
+      feedback.className = `feedback-message show ${type}`;
+    }
+
+    // Note: Close modal functionality removed - students must complete or continue mission
+
+    // Update Total Score Display
+    function updateTotalScoreDisplay() {
+      // Calculate total score from all completed systems
+      gameState.totalScoreAchieved = gameState.solarSystemProgress.reduce((total, system) => {
+        return total + system.score;
+      }, 0);
+      
+      document.getElementById('totalScoreValue').textContent = gameState.totalScoreAchieved;
+    }
+
+    // Show Congratulations Modal
+    function showCongratulationsModal() {
+      // Calculate final statistics
+      const totalTime = gameState.solarSystemProgress.reduce((total, system) => total + system.time, 0);
+      const totalMinutes = Math.floor(totalTime / 60);
+      const totalSeconds = totalTime % 60;
+      const totalTimeString = `${totalMinutes}:${totalSeconds.toString().padStart(2, '0')}`;
+      
+      // Calculate perfect systems (all planets saved)
+      const perfectSystems = gameState.solarSystemProgress.filter(system => 
+        system.planets.every(planet => planet === 'saved')
+      ).length;
+      
+      // Update celebration stats
+      const celebrationStats = document.getElementById('celebrationStats');
+      celebrationStats.innerHTML = `
+        <div class="celebration-stat">
+          <div class="celebration-stat-value">${gameState.totalScoreAchieved}</div>
+          <div class="celebration-stat-label">Total Score</div>
+        </div>
+        <div class="celebration-stat">
+          <div class="celebration-stat-value">${gameState.globalStats.saved}</div>
+          <div class="celebration-stat-label">Planets Saved</div>
+        </div>
+        <div class="celebration-stat">
+          <div class="celebration-stat-value">${perfectSystems}</div>
+          <div class="celebration-stat-label">Perfect Systems</div>
+        </div>
+        <div class="celebration-stat">
+          <div class="celebration-stat-value">${totalTimeString}</div>
+          <div class="celebration-stat-label">Total Time</div>
+        </div>
+        <div class="celebration-stat">
+          <div class="celebration-stat-value">4/4</div>
+          <div class="celebration-stat-label">Systems Complete</div>
+        </div>
+      `;
+      
+      // Show the congratulations modal
+      document.getElementById('congratulationsModal').classList.add('active');
+      
+      // Mark all systems as completed
+      gameState.allSystemsCompleted = true;
+    }
+
+    // Create Solar System Selection Screen
+    function createSolarSystemScreen() {
+      const grid = document.getElementById('solarSystemsGrid');
+      grid.innerHTML = '';
+      
+      // Update total score display
+      updateTotalScoreDisplay();
+      
+      solarSystems.forEach((system, index) => {
+        const card = document.createElement('div');
+        card.className = 'solar-system-card';
+        
+        // Check if system is completed
+        const systemProgress = gameState.solarSystemProgress[index];
+        const isCompleted = systemProgress.completed === 3;
+        // All systems are now unlocked for free exploration
+        const isUnlocked = true;
+        
+        if (isCompleted) {
+          card.classList.add('completed');
+        } else if (!isUnlocked) {
+          card.classList.add('locked');
+        }
+        
+        // Create system stats display only for completed systems
+        let systemStatsHTML = '';
+        if (isCompleted && systemProgress.summaryShown) {
+          const systemMinutes = Math.floor(systemProgress.time / 60);
+          const systemSeconds = systemProgress.time % 60;
+          const systemTimeString = `${systemMinutes}:${systemSeconds.toString().padStart(2, '0')}`;
+          
+          systemStatsHTML = `
+            <div class="system-stats">
+              <div class="system-stat">
+                <div class="system-stat-value">${systemProgress.score}</div>
+                <div class="system-stat-label">Score</div>
+              </div>
+              <div class="system-stat">
+                <div class="system-stat-value">${systemTimeString}</div>
+                <div class="system-stat-label">Time</div>
+              </div>
+            </div>
+          `;
+        }
+        
+        card.innerHTML = `
+          <div class="solar-system-name">${system.name}</div>
+          <div class="solar-system-description">${system.description}</div>
+          <div class="solar-system-progress">
+            ${systemProgress.planets.map(status => 
+              `<div class="planet-status ${status || ''}"></div>`
+            ).join('')}
+          </div>
+          ${systemStatsHTML}
+          <div class="solar-system-difficulty">${system.difficulty}</div>
+        `;
+        
+        if (isUnlocked) {
+          card.addEventListener('click', () => enterSolarSystem(index));
+        }
+        
+        grid.appendChild(card);
+      });
+    }
+
+    // Enter Solar System
+    function enterSolarSystem(systemIndex) {
+      gameState.currentSolarSystem = systemIndex;
+      
+      // Track system start time and score for fresh systems
+      const systemProgress = gameState.solarSystemProgress[systemIndex];
+      if (systemProgress.completed === 0) {
+        gameState.systemStartTime = gameState.timer;
+        gameState.systemStartScore = gameState.score;
+      }
+      
+      document.getElementById('solarSystemScreen').classList.remove('active');
+      resumeTimer(); // Resume timer when entering solar system
+      
+      // Update planets for current system
+      updatePlanetsForSystem(systemIndex);
+    }
+
+    // Planet names for each solar system
+    const planetNames = [
+      // Andromeda System (Beginner)
+      ['Nexus Prime', 'Stellar Haven', 'Aurora Core'],
+      // Centauri System (Intermediate)  
+      ['Crimson Ridge', 'Azure Falls', 'Golden Spire'],
+      // Vega System (Advanced)
+      ['Frost Peak', 'Ember Vale', 'Crystal Moon'],
+      // Orion System (Expert)
+      ['Shadow Realm', 'Lightning Storm', 'Void Walker']
+    ];
+
+    // Update Planets for Current System
+    function updatePlanetsForSystem(systemIndex) {
+      const planetContainers = document.querySelectorAll('.planet-container');
+      const systemChallenges = challenges.filter(c => c.system === systemIndex);
+      const systemProgress = gameState.solarSystemProgress[systemIndex];
+      const currentSystemPlanetNames = planetNames[systemIndex];
+      
+      planetContainers.forEach((container, planetIndex) => {
+        const planet = container.querySelector('.planet');
+        const label = container.querySelector('.planet-label');
+        const status = systemProgress.planets[planetIndex];
+        
+        // Reset planet state
+        planet.className = `planet ${container.dataset.type}`;
+        container.style.pointerEvents = 'auto';
+        
+        // Update based on status
+        if (status === 'saved') {
+          planet.classList.add('saved');
+          label.textContent = '🌟 SAVED! 🌟';
+          label.style.color = '#00ff64';
+          container.style.pointerEvents = 'none';
+        } else if (status === 'partial') {
+          planet.classList.add('partial-save');
+          label.textContent = '⭐ PARTIAL SAVE ⭐';
+          label.style.color = '#ffa500';
+          container.style.pointerEvents = 'none';
+        } else if (status === 'destroyed') {
+          planet.classList.add('destroyed');
+          label.textContent = '💥 DESTROYED 💥';
+          label.style.color = '#ff0064';
+          container.style.pointerEvents = 'none';
+        } else {
+          // Reset to original state with system-specific names
+          label.textContent = currentSystemPlanetNames[planetIndex];
+          label.style.color = '#fff';
+        }
+        
+        // Update problem index for current system
+        const challengeIndex = systemIndex * 3 + planetIndex;
+        container.dataset.problem = challengeIndex;
+      });
+    }
+
+    // Check if Solar System is Complete
+    function checkSolarSystemComplete() {
+      const systemProgress = gameState.solarSystemProgress[gameState.currentSolarSystem];
+      
+      // Only show summary if we just completed the 3rd planet AND haven't shown summary yet
+      if (systemProgress.completed === 3 && !systemProgress.summaryShown) {
+        systemProgress.summaryShown = true; // Mark summary as shown
+        
+        // ALWAYS calculate and save system stats when completing a system
+        const systemTime = gameState.timer - gameState.systemStartTime;
+        const systemScore = gameState.score - gameState.systemStartScore;
+        
+        // Save system stats immediately
+        systemProgress.time = systemTime;
+        systemProgress.score = systemScore;
+        
+        // Check if ALL systems are now complete for congratulations
+        const allSystemsComplete = gameState.solarSystemProgress.every(system => system.completed === 3);
+        
+        if (allSystemsComplete && !gameState.allSystemsCompleted) {
+          // All systems complete - show congratulations instead of system summary
+          gameState.allSystemsCompleted = true;
+          setTimeout(() => {
+            showCongratulationsModal();
+          }, 1000);
+        } else {
+          // System complete but not all systems - show system summary
+          setTimeout(() => {
+            showSystemSummary();
+          }, 1000);
+        }
+      }
+    }
+
+    // Show Solar System Summary
+    function showSystemSummary() {
+      pauseTimer(); // Pause timer during system summary
+      const systemIndex = gameState.currentSolarSystem;
+      const systemName = solarSystems[systemIndex].name;
+      const systemProgress = gameState.solarSystemProgress[systemIndex];
+      
+      // System stats are already calculated and saved in checkSolarSystemComplete()
+      const systemTime = systemProgress.time;
+      const systemScore = systemProgress.score;
+      
+      // Count planets by status in this system
+      const systemStats = {
+        saved: systemProgress.planets.filter(p => p === 'saved').length,
+        partial: systemProgress.planets.filter(p => p === 'partial').length,
+        destroyed: systemProgress.planets.filter(p => p === 'destroyed').length
+      };
+      
+      // Update summary content
+      document.getElementById('systemSummaryTitle').textContent = `🌟 ${systemName} Complete! 🌟`;
+      
+      // Format system time
+      const systemMinutes = Math.floor(systemTime / 60);
+      const systemSeconds = systemTime % 60;
+      const systemTimeString = `${systemMinutes}:${systemSeconds.toString().padStart(2, '0')}`;
+      
+      const systemSummaryStats = document.getElementById('systemSummaryStats');
+      const maxPossibleScore = 300; // 3 planets × 100 points each
+      systemSummaryStats.innerHTML = `
+        <div class="stat-card saved">
+          <div class="stat-value">${systemStats.saved}</div>
+          <div class="stat-label">Planets Saved</div>
+        </div>
+        <div class="stat-card partial">
+          <div class="stat-value">${systemStats.partial}</div>
+          <div class="stat-label">Partial Saves</div>
+        </div>
+        <div class="stat-card destroyed">
+          <div class="stat-value">${systemStats.destroyed}</div>
+          <div class="stat-label">Planets Lost</div>
+        </div>
+        <div class="stat-card score">
+          <div class="stat-value">${systemScore}/${maxPossibleScore}</div>
+          <div class="stat-label">System Score</div>
+        </div>
+        <div class="stat-card time">
+          <div class="stat-value">${systemTimeString}</div>
+          <div class="stat-label">System Time</div>
+        </div>
+      `;
+      
+      // Create system-specific message
+      const systemSummaryMessage = document.getElementById('systemSummaryMessage');
+      let message = '';
+      
+      if (systemStats.saved === 3) {
+        message = `🌟 PERFECT SYSTEM! 🌟<br>You saved all 3 planets in ${systemName}! Your mastery of ${solarSystems[systemIndex].difficulty.toLowerCase()} improper integrals is excellent!`;
+      } else if (systemStats.saved >= 2) {
+        message = `🚀 GREAT WORK! 🚀<br>You saved ${systemStats.saved} planets in ${systemName}! You're becoming a skilled Space Hero!`;
+      } else if (systemStats.saved >= 1) {
+        message = `⭐ GOOD EFFORT! ⭐<br>You saved ${systemStats.saved} planet in ${systemName}. Keep practicing to save more worlds!`;
+      } else {
+        message = `💪 SYSTEM EXPLORED! 💪<br>You completed ${systemName}, gaining valuable experience with improper integrals!`;
+      }
+      
+      systemSummaryMessage.innerHTML = message;
+      
+      // Check if there are more systems to unlock
+      const nextSystemIndex = systemIndex + 1;
+      const hasNextSystem = nextSystemIndex < solarSystems.length;
+      const nextSystemBtn = document.getElementById('nextSystemBtn');
+      
+      if (hasNextSystem) {
+        nextSystemBtn.style.display = 'block';
+        nextSystemBtn.textContent = `Enter ${solarSystems[nextSystemIndex].name}`;
+        
+        // Remove previous event listeners and add new one
+        const newNextBtn = nextSystemBtn.cloneNode(true);
+        nextSystemBtn.parentNode.replaceChild(newNextBtn, nextSystemBtn);
+        
+        newNextBtn.addEventListener('click', () => {
+          document.getElementById('systemSummaryScreen').classList.remove('active');
+          
+          // Reset timer and score for the new system
+          gameState.timer = 0;
+          gameState.score = 0;
+          document.getElementById('timer').textContent = '00:00';
+          document.getElementById('score').textContent = '0';
+          
+          enterSolarSystem(nextSystemIndex);
+        });
+      } else {
+        nextSystemBtn.style.display = 'none';
+      }
+      
+      // Show the system summary screen
+      document.getElementById('systemSummaryScreen').classList.add('active');
+    }
+
+    // Return to Solar System Selection
+    function returnToSolarSystemSelection() {
+      pauseTimer(); // Pause timer when exiting solar system
+      document.getElementById('solarSystemScreen').classList.add('active');
+      createSolarSystemScreen();
+      
+      // Reset spaceship position
+      const spaceship = document.getElementById('spaceship');
+      spaceship.style.left = '50%';
+      spaceship.style.top = '50%';
+    }
+
+    // Show Mission Summary
+    function showMissionSummary() {
+      clearInterval(gameState.timerInterval);
+      
+      const summaryStats = document.getElementById('summaryStats');
+      const summaryMessage = document.getElementById('summaryMessage');
+      
+      // Calculate final time
+      const minutes = Math.floor(gameState.timer / 60);
+      const seconds = gameState.timer % 60;
+      const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      
+      // Create stats cards
+      summaryStats.innerHTML = `
+        <div class="stat-card saved">
+          <div class="stat-value">${gameState.globalStats.saved}</div>
+          <div class="stat-label">Planets Saved</div>
+        </div>
+        <div class="stat-card partial">
+          <div class="stat-value">${gameState.globalStats.partial}</div>
+          <div class="stat-label">Partial Saves</div>
+        </div>
+        <div class="stat-card destroyed">
+          <div class="stat-value">${gameState.globalStats.destroyed}</div>
+          <div class="stat-label">Planets Lost</div>
+        </div>
+        <div class="stat-card time">
+          <div class="stat-value">${timeString}</div>
+          <div class="stat-label">Total Time</div>
+        </div>
+        <div class="stat-card score">
+          <div class="stat-value">${gameState.score}</div>
+          <div class="stat-label">Final Score</div>
+        </div>
+      `;
+      
+      // Create summary message
+      const totalSaved = gameState.globalStats.saved + gameState.globalStats.partial;
+      let message = '';
+      
+      if (gameState.globalStats.saved === 12) {
+        message = '🌟 PERFECT MISSION! 🌟<br>You saved all 12 planets across the galaxy! You are a true Space Hero and master of improper integrals!';
+      } else if (totalSaved >= 10) {
+        message = '🚀 EXCELLENT WORK! 🚀<br>You saved most of the galaxy! Your mastery of improper integrals is impressive!';
+      } else if (totalSaved >= 6) {
+        message = '⭐ GOOD JOB! ⭐<br>You saved many planets! Keep practicing improper integrals to become an even better Space Hero!';
+      } else {
+        message = '💪 KEEP TRYING! 💪<br>Every Space Hero starts somewhere! Review improper integral concepts and try again!';
+      }
+      
+      summaryMessage.innerHTML = message;
+      document.getElementById('summaryScreen').classList.add('active');
+    }
+
+    // Restart Game
+    document.getElementById('restartBtn').addEventListener('click', () => {
+      // Reset all game state
+      gameState = {
+        score: 0,
+        timer: 0,
+        timerInterval: null,
+        completedChallenges: 0,
+        totalChallenges: 12,
+        currentSolarSystem: 0,
+        currentChallenge: null,
+        selectedType: null,
+        selectedSplit: null,
+        currentStep: 1,
+        arrangement: {},
+        solarSystemProgress: [
+          { completed: 0, planets: [null, null, null], score: 0, time: 0, summaryShown: false },
+          { completed: 0, planets: [null, null, null], score: 0, time: 0, summaryShown: false },
+          { completed: 0, planets: [null, null, null], score: 0, time: 0, summaryShown: false },
+          { completed: 0, planets: [null, null, null], score: 0, time: 0, summaryShown: false }
+        ],
+        globalStats: {
+          saved: 0,
+          partial: 0,
+          destroyed: 0
+        },
+        systemStartTime: 0,
+        systemStartScore: 0,
+        totalScoreAchieved: 0,
+        allSystemsCompleted: false
+      };
+      
+      // Reset solar systems
+      solarSystems.forEach((system, index) => {
+        system.unlocked = index === 0;
+      });
+      
+      // Reset UI
+      document.getElementById('summaryScreen').classList.remove('active');
+      document.getElementById('congratulationsModal').classList.remove('active');
+      document.getElementById('titleScreen').classList.remove('hidden');
+      document.getElementById('score').textContent = '0';
+      document.getElementById('timer').textContent = '00:00';
+      document.getElementById('totalScoreValue').textContent = '0';
+      updateProgress();
+    });
+
+    // Galaxy Map Button Handler
+    document.getElementById('galaxyMapBtn').addEventListener('click', () => {
+      returnToSolarSystemSelection();
+    });
+
+    // Continue to Galaxy Button Handler
+    document.getElementById('continueToGalaxyBtn').addEventListener('click', () => {
+      document.getElementById('systemSummaryScreen').classList.remove('active');
+      
+      // Check if all systems complete
+      const allComplete = gameState.solarSystemProgress.every(system => system.completed === 3);
+      if (allComplete && !gameState.allSystemsCompleted) {
+        // Show congratulations modal first time all systems are completed
+        showCongratulationsModal();
+      } else {
+        returnToSolarSystemSelection();
+      }
+    });
+
+    // Continue Exploring Button Handler
+    document.getElementById('continueExploringBtn').addEventListener('click', () => {
+      document.getElementById('congratulationsModal').classList.remove('active');
+      returnToSolarSystemSelection();
+    });
+
+    // Begin Mission Handler
+    document.getElementById('beginBtn').addEventListener('click', () => {
+      document.getElementById('briefingScreen').classList.remove('active');
+      document.getElementById('solarSystemScreen').classList.add('active');
+      createSolarSystemScreen();
+      startTimer();
+      createMathSymbols();
+    });
+
+    // Initialize
+    createStarfield();
+    updateProgress();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99addfeb90159a6e',t:'MTc2MjUyOTQ1Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
